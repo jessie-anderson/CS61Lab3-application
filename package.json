@@ -20,7 +20,8 @@
     "cors": "^2.8.3",
     "ejs": "^2.5.6",
     "express": "^4.15.2",
-    "mongodb": "^2.2.27"
+    "mongodb": "^2.2.27",
+    "prompt": "^1.0.0"
   },
   "devDependencies": {
     "babel-eslint": "^7.2.3",
