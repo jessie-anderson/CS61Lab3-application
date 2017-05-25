@@ -1,12 +1,4 @@
-
-const status = /status\s*/;
-const assign = /assign\s+(\w+)\s+(\w+)\s*/;
-const reject = /reject\s+(\w+)\s*/;
-const accept = /accept\s+(\w+)\s*/;
-const typeset = /typeset\s+(\w+)\s+(\d+)\s*/;
-const schedule = /schedule\s+(\w+)\s+(\d+)\s+([1234])\s*/;
-const publish = /publish\s+(\d+)\s+([1234])\s*/;
-const create = /create\s+(\d+)\s+([1234])\s*/; // creates issue
+import { assign, editorReject, editorAccept, typeset, schedule, publish, createIssue } from './regex';
 
 function registerEditor(db, fname, lname) {
   db.collection('people').insert({
