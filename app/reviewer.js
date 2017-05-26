@@ -78,7 +78,7 @@ const reviewerResign = (db, reviewerId, promptFn) => {
     } else {
       db.collection('reviews').remove({ reviewer: new ObjectID(reviewerId) });
       db.collection('people').remove({ _id: new ObjectID(reviewerId) });
-      promptFn(db);
+      promptFn(db, true);
     }
   });
 };
@@ -144,7 +144,6 @@ const handleReviewerInput = (db, reviewerId, input, promptFn) => {
     reviewManuscript(db, reviewerId, values[1], parseInt(values[2], 10),
       parseInt(values[3], 10), parseInt(values[4], 10), parseInt(values[5], 10), 0, promptFn);
   } else if (input.match(status) !== null) {
-    console.log('status command');
     getReviewerStatus(db, reviewerId, promptFn);
   } else {
     console.log('invalid command');

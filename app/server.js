@@ -20,7 +20,11 @@ const inputHandlers = {
 let currentUserType = 'none';
 let currentUserId = null;
 
-const promptFn = (db) => {
+const promptFn = (db, resignHappened) => {
+  if (resignHappened) {
+    currentUserType = 'none';
+    currentUserId = null;
+  }
   prompt.get(['command'], (err, result) => {
     if (result.command === 'exit') {
       console.log('Bye!');
