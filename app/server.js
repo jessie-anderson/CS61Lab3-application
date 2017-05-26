@@ -7,7 +7,7 @@
 import express from 'express';
 import prompt from 'prompt';
 import { MongoClient, ObjectID } from 'mongodb';
-import { login, status } from './regex';
+import { login } from './regex';
 import handleAuthorInput from './author';
 import handleReviewerInput from './reviewer';
 
@@ -31,30 +31,31 @@ const promptFn = (db) => {
           if (err) {
             console.log('an error occurred:');
             console.log(err);
+            promptFn(db);
           } else if (person === null) {
             console.log('invalid login id');
             console.log(`attempted to find with id: ${login.exec(result.command)[1]}`);
+            promptFn(db);
           } else {
             currentUserId = person._id;
             currentUserType = person.type;
             console.log(`name: ${person.fname} ${person.lname}`);
             console.log(`address: ${person.address}`);
             console.log(currentUserType);
-            // inputHandlers[currentUserType](db, currentUserId, status, promptFn(db));
+            inputHandlers[currentUserType](db, currentUserId, 'status', promptFn);
           }
-          promptFn(db);
         });
       } else {
         console.log('invalid command');
         promptFn(db);
       }
-    } else {
-      if (result.command === 'logout') {
-        console.log('Goodbye!');
-        currentUserId = null;
-        currentUserType = 'none';
-      }
+    } else if (result.command === 'logout') {
+      console.log('Goodbye!');
+      currentUserId = null;
+      currentUserType = 'none';
       promptFn(db);
+    } else {
+      inputHandlers[currentUserType](db, currentUserId, result.command, promptFn);
     }
   });
 };

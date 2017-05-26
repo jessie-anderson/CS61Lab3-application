@@ -5,7 +5,7 @@ export const registerReviewer = /register\s+reviewer\s+(\w+)\s+(\w+)/;
 
 // common
 export const login = /login\s+(\w+)/;
-export const status = /status\s+/;
+export const status = /status\s*/;
 
 // author
 export const sumbit = /submit\s+(\w+)\s+(\w+)\s+(\d+)\s+(((\w+)\s+)+)\s+(\w+$)/;
