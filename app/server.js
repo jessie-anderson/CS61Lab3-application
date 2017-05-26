@@ -10,6 +10,7 @@ import { MongoClient, ObjectID } from 'mongodb';
 import { login } from './regex';
 import handleAuthorInput from './author';
 import handleReviewerInput from './reviewer';
+import handleError from './error';
 
 // initialize
 const app = express();
@@ -33,8 +34,7 @@ const promptFn = (db, resignHappened) => {
       if (result.command.match(login) !== null) {
         db.collection('people').findOne({ _id: new ObjectID(login.exec(result.command)[1]) }, (err, person) => {
           if (err) {
-            console.log('an error occurred:');
-            console.log(err);
+            handleError(err);
             promptFn(db);
           } else if (person === null) {
             console.log('invalid login id');

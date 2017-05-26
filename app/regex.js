@@ -8,7 +8,7 @@ export const login = /login\s+(\w+)/;
 export const status = /status\s*/;
 
 // author
-export const sumbit = /submit\s+(\w+)\s+(\w+)\s+(\d+)\s+(((\w+)\s+)+)\s+(\w+$)/;
+export const submit = /submit\s+(\w+)\s+(\w+)\s+(\d+)\s+(((\w+)\s+)+)\s+(\w+$)/;
 export const retract = /retract\s+(\w+)/;
 
 // reviewer

@@ -1,5 +1,6 @@
 import { ObjectID } from 'mongodb';
 import { status, resign, reviewerReject, reviewerAccept } from './regex';
+import handleError from './error';
 
 const validateScores = (appropriateness, clarity, methodology, contribution) => {
   let a = true;
@@ -37,8 +38,7 @@ const reviewManuscript = (db, reviewerId, manuscriptId, appropriateness, clarity
     };
     db.collection('reviews').findOne(reviewQuery, (err, manuscript) => {
       if (err) {
-        console.log('an error occurred:');
-        console.log(err);
+        handleError(err);
         promptFn(db);
       } else if (manuscript === null) {
         console.log('You are not assigned to this manuscript!');
@@ -57,8 +57,7 @@ const reviewManuscript = (db, reviewerId, manuscriptId, appropriateness, clarity
         };
         db.collection('reviews').update(reviewQuery, { $set: newFields }, (err, res) => {
           if (err) {
-            console.log('An error occurred when submitting your review:');
-            console.log(err);
+            handleError(err);
           } else {
             console.log('Review successfully submitted!');
           }
@@ -70,31 +69,22 @@ const reviewManuscript = (db, reviewerId, manuscriptId, appropriateness, clarity
 };
 
 const reviewerResign = (db, reviewerId, promptFn) => {
-  db.collection('reviews').find({ _id: new ObjectID(reviewerId) }).toArray((err, docs) => {
-    if (err) {
-      console.log('An error occurred:');
-      console.log(err);
-      promptFn(db);
-    } else {
-      db.collection('reviews').remove({ reviewer: new ObjectID(reviewerId) });
-      db.collection('people').remove({ _id: new ObjectID(reviewerId) });
-      promptFn(db, true);
-    }
-  });
+  db.collection('reviews').remove({ reviewer: new ObjectID(reviewerId) });
+  db.collection('people').remove({ _id: new ObjectID(reviewerId) });
+  console.log('Thank you for your service!');
+  promptFn(db, true);
 };
 
 const getReviewerStatus = (db, reviewerId, promptFn) => {
   db.collection('reviews').find({ reviewer: new ObjectID(reviewerId) }).toArray((err, reviews) => {
     if (err) {
-      console.log('An error occurred:');
-      console.log(err);
+      handleError(err);
       promptFn(db);
     } else {
       const manIds = reviews.map((r) => { return r.manuscript; });
       db.collection('manuscripts').find({ _id: { $in: manIds } }).toArray((err2, manuscripts) => {
         if (err2) {
-          console.log('an error occurred:');
-          console.log(err);
+          handleError(err2);
           promptFn(db);
         } else {
           const sumbittedManuscripts = manuscripts.filter((m) => { return m.status === 'submitted'; });
@@ -134,7 +124,12 @@ const getReviewerStatus = (db, reviewerId, promptFn) => {
 
 const handleReviewerInput = (db, reviewerId, input, promptFn) => {
   if (input.match(resign) !== null) {
-    reviewerResign(db, reviewerId, promptFn);
+    if (resign.exec(input)[1] !== reviewerId) {
+      console.log(`${input.match(resign)[1]} is not your ID. Please enter your ID to resign`);
+      promptFn(db);
+    } else {
+      reviewerResign(db, reviewerId, promptFn);
+    }
   } else if (input.match(reviewerAccept) !== null) {
     const values = reviewerAccept.exec(input);
     reviewManuscript(db, reviewerId, values[1], parseInt(values[2], 10),
