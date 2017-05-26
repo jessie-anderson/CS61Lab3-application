@@ -1,3 +1,5 @@
+import { status, resign, reviewerReject, reviewerAccept } from './regex';
+
 
 const validateScores = (appropriateness, clarity, methodology, contribution) => {
   let a = true;
@@ -24,7 +26,7 @@ const validateScores = (appropriateness, clarity, methodology, contribution) => 
   return a && cl && m && co;
 };
 
-export const acceptManuscript = (reviewerId, manuscriptId, appropriateness, clarity, methodology, contribution) => {
+const acceptManuscript = (db, reviewerId, manuscriptId, appropriateness, clarity, methodology, contribution) => {
   if (!validateScores(appropriateness, clarity, methodology, contribution)) {
     console.log('Invalid scores; not submitting review.');
   } else {
@@ -32,7 +34,7 @@ export const acceptManuscript = (reviewerId, manuscriptId, appropriateness, clar
   }
 };
 
-export const rejectManuscript = (reviewerId, manuscriptId, appropriateness, clarity, methodology, contribution) => {
+const rejectManuscript = (db, reviewerId, manuscriptId, appropriateness, clarity, methodology, contribution) => {
   if (!validateScores(appropriateness, clarity, methodology, contribution)) {
     console.log('Invalid scores; not submitting review.');
   } else {
@@ -40,10 +42,26 @@ export const rejectManuscript = (reviewerId, manuscriptId, appropriateness, clar
   }
 };
 
-export const resign = (reviewerId) => {
+const reviewerResign = (db, reviewerId) => {
 
 };
 
-export const getStatus = (reviewerId) => {
+const getReviewerStatus = (db, reviewerId) => {
 
 };
+
+const handleReviewerInput = (db, reviewerId, input) => {
+  if (input.match(resign) !== null) {
+    const reviewerId = resign.exec(input)[1];
+  } else if (input.match(reviewerAccept) !== null) {
+
+  } else if (input.match(reviewerReject) !== null) {
+
+  } else if (input.match(status) !== null) {
+
+  } else {
+    console.log('invalid command');
+  }
+};
+
+export default handleReviewerInput;
