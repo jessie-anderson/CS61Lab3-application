@@ -37,7 +37,7 @@ const submitManuscript = (db, authorId, title, affiliation, RICode, authors, fil
 };
 
 const getAuthorStatus = (db, authorId, promptFn) => {
-  db.collection('manuscripts').find({ primaryAuthor: new ObjectID(authorId) }).toArray((err, manuscripts) => {
+  db.collection('manuscripts').find({ primaryAuthor: authorId }).toArray((err, manuscripts) => {
     if (err) {
       handleError(err);
       promptFn(db);

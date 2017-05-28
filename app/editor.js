@@ -1,17 +1,9 @@
 import { handleError } from './error';
-import { status, assign, editorAccept, editorReject, typeset, publish, createIssue } from './regex';
-import { ObjectID } from 'mongodb';
+import { status, assign, editorAccept, editorReject, typeset, schedule, publish, createIssue } from './regex';
 
-function registerEditor(db, fname, lname) {
-  db.collection('people').insert({
-    fname,
-    lname,
-    type: 'editor',
-  });
-}
 
 function getStatus(db, id, promptFn) {
-  db.collection('manuscripts').find({ primaryAuthor: new ObjectID(authorId) }).toArray((err, manuscripts) => {
+  db.collection('manuscripts').find({ editor: parseInt(id, 10) }).toArray((err, manuscripts) => {
     if (err) {
       handleError(err);
       promptFn(db);
@@ -50,169 +42,298 @@ function getStatus(db, id, promptFn) {
 }
 
 // Checks manuscript belongs to the editor and the next status is valid
-function checkManuscript(db, idPerson, idManu, nextStatus) {
-  db.collections('manuscripts').find({ _id: idManu }).then((result) => {
+function checkManuscript(db, idPerson, idManu, nextStatus, callback) {
+  db.collection('manuscripts').findOne({ _id: parseInt(idManu, 10) }).then((result) => {
     if (result.editor !== idPerson) {
-      return false;
+      callback(false);
+      return;
     }
     switch (nextStatus) {
       case 'submitted':
-        if (result.status === 'under review') { return true; }
+        if (result.status === 'under review') { callback(true); return; }
         console.log('ERROR: Manuscript cannot be set to submitted unless reviewer resigns');
-        return false;
+        callback(false);
+        break;
       case 'under review':
-        if (result.status === 'under review' || result.status === 'submitted') { return true; }
+        if (result.status === 'under review' || result.status === 'submitted') { callback(true); return; }
         console.log('ERROR: Manuscript cannot be set to under review unless it is changed from submitted or currently under review');
-        return false;
+        callback(false);
+        break;
       case 'accepted':
         if (result.status === 'under review') {
-          db.collections('reviews').find({ manuscript: idManu, dateCompleted: { $ne: null } }).count().then((count) => {
-            if (count >= 3) { return true; }
+          db.collection('reviews').find({ manuscript: idManu, dateCompleted: { $ne: null } }).count().then((count) => {
+            if (count >= 3) { callback(true); return; }
             console.log('ERROR: Need at least 3 completed reviews to set manuscript to accepted');
-            return false;
+            callback(false);
           });
+          return;
         }
         console.log('ERROR: Manuscript cannot be set to accepted unless it is currently under review');
-        return false;
+        callback(false);
+        break;
       case 'rejected':
         if (result.status === 'under review') {
-          db.collections('reviews').find({ manuscript: idManu, dateCompleted: { $ne: null } }).count().then((count) => {
-            if (count >= 3) { return true; }
+          db.collection('reviews').find({ manuscript: idManu, dateCompleted: { $ne: null } }).count().then((count) => {
+            if (count >= 3) { callback(true); return; }
             console.log('ERROR: Need at least 3 completed reviews to set manuscript to rejected');
-            return false;
+            callback(false);
           });
+          return;
         }
         console.log('ERROR: Manuscript cannot be set to rejected unless it is currently under review');
-        return false;
+        callback(false);
+        break;
       case 'typesetting':
-        if (result.status === 'accepted' || result.status === 'rejected') { return true; }
+        if (result.status === 'accepted' || result.status === 'rejected') { callback(true); return; }
         console.log('ERROR: Manuscript cannot be typeset until it is accepted or rejected');
-        return false;
+        callback(false);
+        break;
       case 'scheduled for publication':
-        if (result.status === 'typesetting') { return true; }
+        if (result.status === 'typesetting') { callback(true); return; }
         console.log('ERROR: Manuscript cannot be scheduled for publication until it has been typeset');
-        return false;
+        callback(false);
+        break;
       case 'published':
-        if (result.stateus === 'scheduled for publication') {
-          return true;
+        if (result.status === 'scheduled for publication') {
+          callback(true);
+          return;
         }
         console.log('ERROR: Manuscript cannnot be published until it has been scheduled for publication');
-        return false;
+        callback(false);
+        break;
       default:
-        return false;
+        callback(false);
     }
   });
-  return false;
 }
 
-function assignManu(db, idPerson, idManu, idReviewer) {
-  if (checkManuscript(db, idPerson, idManu, 'under review') === false) { return; }
-  db.collections('manuscripts').updateOne();
-  // check manuscript belongs to editor
-  // correct next status
-  // Not already assigned
-  // match RICodes
-}
-
-function rejectManu(db, idPerson, idManu) {
-  if (checkManuscript(db, idPerson, idManu, 'rejected') === false) { return; }
-  db.collections('manuscripts').updateOne();
-  // check manuscript belogns to editor
-  // check correct next status
-  // check three reviews exist for this manuscript
-}
-
-function acceptManu(db, idPerson, idManu) {
-  if (checkManuscript(db, idPerson, idManu, 'accepted') === false) { return; }
-  db.collections('manuscripts').updateOne();
-  // check manuscript belogns to editor
-  // check correct next status
-  // check three reviews exist for this manuscript
-}
-
-function typesetManu(db, idPerson, idManu, numPages) {
-  if (checkManuscript(db, idPerson, idManu, 'typesetting') === false) { return; }
-  db.collections('manuscripts').updateOne({ _id: idManu }, { $set: {
-    status: 'typesetting',
-    timestamp: new Date().toTimeStamp(),
-    numPages,
-  } });
-}
-
-function scheduleManu(db, idPerson, idManu, issueYear, issuePPN) {
-  if (checkManuscript(db, idPerson, idManu, 'scheduled for publication') === false) { return; }
-  db.collections('issues').findOne({ year: issueYear, publicationPeriodNumber: issuePPN }).then((issue) => {
+function checkIssue(db, year, publicationPeriodNumber) {
+  return db.collection('issues').findOne({ year, publicationPeriodNumber }).then((issue) => {
     if (issue === null) {
       console.log('ERROR: Issue does not exist');
-      return;
+      return false;
     }
-    db.collections('manuscripts')
-    .aggregate([{ $match: { year: issueYear, publicationPeriodNumber: issuePPN } }, { $group: { totalPages: { $sum: '$numPages' } } }])
-    .then((result) => {
-      db.collections('manuscripts').find({ _id: idManu }).sort({ orderInIssue: 1 }).then((man) => {
-        if (result.totalPages + man.numPages > 100) {
-          console.log('ERROR: Issue cannot contain more than 100 pages');
+    return db.collection('manuscripts').find({ issue: issue._id }).sort({ orderInIssue: 1 })
+    .toArray()
+    .then((mans) => {
+      const pages = mans.reduce((prev, cur) => {
+        if (prev === null) { return null; }
+        if (prev.pageNumber > cur.pageNumber) {
+          console.log('ERROR: Page numbers not in monotonically increasing order');
+          return null;
+        } else if (cur.pageNumber !== prev.totalPages + 1) {
+          console.log('ERROR: Issue page numbering cannot skip pages');
+          return null;
+        } else if (cur.orderInIssue !== prev.orderInIssue + 1) {
+          console.log('ERROR: Manuscripts in issue cannot skip order');
+          return null;
         } else {
-          db.collections('manuscripts').find();
-          db.collections('manuscripts').updateOne({ _id: idManu }, { $set: {
-            status: 'scheduled for publication',
-            timestamp: new Date().toTimeStamp(),
-            issue: issue._id,
-          } });
+          return { pageNumber: cur.pageNumber, orderInIssue: cur.orderInIssue, totalPages: prev.totalPages + cur.numPages };
         }
+      }, { pageNumber: 0, orderInIssue: 0, totalPages: 0 });
+      if (pages === null) {
+        return false;
+      } else if (pages.totalPages === 0) {
+        console.log('ERROR: Cannot publish and empty issue');
+        return false;
+      } else if (pages.totalPages > 100) {
+        console.log('ERROR: Issue cannot exceed over 100 pages');
+        return false;
+      }
+      return true;
+    });
+  });
+}
+
+function assignManu(db, idPerson, idManu, idReviewer, promptFn) {
+  checkManuscript(db, idPerson, idManu, 'under review', (check) => {
+    if (!check) { promptFn(db); return; }
+    db.collection('reviews').findOne({ manuscript: parseInt(idManu, 10), reviewer: parseInt(idReviewer, 10) }).then((review) => {
+      if (review !== null) {
+        console.log('ERROR: Review already assigned for given Manuscript and Reviewer');
+        promptFn(db);
+        return;
+      }
+      db.collection('people').findOne({ _id: parseInt(idReviewer, 10) }).then((reviewer) => {
+        if (reviewer === null || reviewer.type !== 'reviewer') {
+          console.log('ERROR: Reviewer does not exist');
+          promptFn(db);
+          return;
+        }
+        db.collection('manuscripts').findOne({ _id: parseInt(idManu, 10) }).then((man) => {
+          if (reviewer.interests === null || reviewer.interests.indexOf(man.RICode) === -1) {
+            console.log('ERROR: RI Codes of manuscript and reviewer do not match');
+            promptFn(db);
+          } else {
+            db.collection('reviews').insertOne({
+              manuscript: parseInt(idManu, 10),
+              reviewer: parseInt(idReviewer, 10),
+            }).then((result) => {
+              db.collection('manuscripts').updateOne({ _id: parseInt(idManu, 10) }, { $set: { status: 'under review', timestamp: new Date().toString() } });
+              console.log('Review assigned!');
+              promptFn(db);
+            });
+          }
+        });
       });
     });
   });
-
-
-  // check page maximum not exceeded
-  // add manuscript with default next page
 }
 
-function scheduleManuOrder(db, idPerson, idManu, issueYear, issuePPN, order, pageNumber) {
-  if (checkManuscript(db, idPerson, idManu, 'scheduled for publication') === false) { return; }
-  db.collections('manuscripts').updateOne();
+function rejectManu(db, idPerson, idManu, promptFn) {
+  checkManuscript(db, idPerson, idManu, 'rejected', (check) => {
+    if (!check) { promptFn(db); return; }
+    db.collection('manuscripts').update({ _id: parseInt(idManu, 10) }, { $set: {
+      status: 'rejected',
+      timestamp: new Date().toString(),
+    } }).then((result) => {
+      promptFn(db);
+    });
+  });
+}
+
+function acceptManu(db, idPerson, idManu, promptFn) {
+  checkManuscript(db, idPerson, idManu, 'accepted', (check) => {
+    if (!check) { promptFn(db); } else {
+      console.log('true');
+      db.collection('manuscripts').update({ _id: parseInt(idManu, 10) }, { $set: {
+        status: 'accepted',
+        timestamp: new Date().toString(),
+      } }).then((result) => {
+        console.log('Manuscript accepted!');
+        promptFn(db);
+      });
+    }
+  });
+}
+
+function typesetManu(db, idPerson, idManu, numPages, promptFn) {
+  checkManuscript(db, idPerson, idManu, 'typesetting', (check) => {
+    if (!check) { promptFn(db); return; }
+    if (numPages <= 0) {
+      console.log('ERROR: number of pages must be at least 1');
+    } else {
+      db.collection('manuscripts').updateOne({ _id: parseInt(idManu, 10) }, { $set: {
+        status: 'typesetting',
+        timestamp: new Date().toString(),
+        numPages,
+      } }).then((result) => {
+        promptFn(db);
+      });
+    }
+  });
+}
+
+function scheduleManu(db, idPerson, idManu, issueYear, issuePPN, promptFn) {
+  checkManuscript(db, idPerson, idManu, 'scheduled for publication', (check) => {
+    if (!check) { promptFn(db); return; }
+    db.collection('issues').findOne({ year: issueYear, publicationPeriodNumber: issuePPN }).then((issue) => {
+      if (issue === null) {
+        console.log('ERROR: Issue does not exist');
+        promptFn(db);
+        return;
+      }
+      db.collection('manuscripts').find({ issue: issue._id }).sort({ orderInIssue: -1 }).toArray()
+    .then((result) => {
+      if (result === null) {
+        db.collection('manuscripts').updateOne({ _id: parseInt(idManu, 10) }, { $set: {
+          status: 'scheduled for publication',
+          timestamp: new Date().toString(),
+          issue: issue._id,
+          orderInIssue: 1,
+          pageNumber: 1,
+        } });
+        promptFn(db);
+      } else {
+        db.collection('manuscripts')
+        .findOne({ _id: parseInt(idManu, 10) })
+        .then((man) => {
+          const totalPages = result.reduce((prev, cur) => {
+            return prev + cur.numPages;
+          }, 0);
+          if (totalPages + man.numPages > 100) {
+            console.log('ERROR: Issue cannot contain more than 100 pages');
+          } else {
+            db.collection('manuscripts').updateOne({ _id: parseInt(idManu, 10) }, { $set: {
+              status: 'scheduled for publication',
+              timestamp: new Date().toString(),
+              issue: issue._id,
+              orderInIssue: result[0].orderInIssue + 1,
+              pageNumber: totalPages + 1,
+            } });
+          }
+          promptFn(db);
+        });
+      }
+    });
+    });
+  });
+}
+
+/* function scheduleManuOrder(db, idPerson, idManu, issueYear, issuePPN, order, pageNumber, promptFn) {
+  if (!checkManuscript(db, idPerson, idManu, 'scheduled for publication')) { promptFn(db); return; }
+  db.collection('manuscripts').updateOne();
   // check manuscript belogns to editor
   // check correct next status
   // check page maximum not exceeded
   // add manuscript with given page order and page number
   // check valid ordering and numbering
-}
+}*/
 
-function createIssue(db, issueYear, issuePPN) {
-  db.collections('issues').find({ year: issueYear, publicationPeriodNumber: issuePPN }).count((count) => {
-    if (count !== 0) {
-      console.log('The issue already exists');
+function create(db, issueYear, issuePPN, promptFn) {
+  db.collection('issues').findOne({ year: issueYear, publicationPeriodNumber: issuePPN }).then((issue) => {
+    if (issue !== null) {
+      console.log('ERROR: The issue already exists');
+      promptFn(db);
     } else {
-      db.collections('issues').insertOne({ year: issueYear, publicationPeriodNumber: issuePPN });
+      db.collection('issues').insertOne({ year: issueYear, publicationPeriodNumber: issuePPN }).then((result) => {
+        console.log('Issue created!');
+        promptFn(db);
+      });
     }
   });
 }
 
-function publishIssue(db, issueYear, issuePPN) {
-  // check issue is not empty
-  // check page max not exceeded
-  // / check ordering of pages and page numbers
+function publishIssue(db, issueYear, issuePPN, promptFn) {
+  if (!checkIssue(issueYear, issuePPN)) {
+    console.log('ERROR: Cannot not publish issue');
+    promptFn(db);
+    return;
+  }
+  db.collection('issues').findOne({ year: issueYear, publicationPeriodNumber: issuePPN }).then((issue) => {
+    db.collection('manuscripts').update({ issue: issue._id }, { $set: {
+      status: 'published',
+      timestamp: new Date().toString(),
+    } }).then((result) => {
+      promptFn(db);
+    });
+  });
 }
 
 const handleEditorInput = (db, editorId, input, promptFn) => {
-  if (input.match(resign) !== null) {
-    if (resign.exec(input)[1] !== reviewerId) {
-      console.log(`${input.match(resign)[1]} is not your ID. Please enter your ID to resign`);
-      promptFn(db);
-    } else {
-      reviewerResign(db, reviewerId, promptFn);
-    }
-  } else if (input.match(reviewerAccept) !== null) {
-    const values = reviewerAccept.exec(input);
-    reviewManuscript(db, reviewerId, values[1], parseInt(values[2], 10),
-      parseInt(values[3], 10), parseInt(values[4], 10), parseInt(values[5], 10), 1, promptFn);
-  } else if (input.match(reviewerReject) !== null) {
-    const values = reviewerReject.exec(input);
-    reviewManuscript(db, reviewerId, values[1], parseInt(values[2], 10),
-      parseInt(values[3], 10), parseInt(values[4], 10), parseInt(values[5], 10), 0, promptFn);
+  if (input.match(assign) !== null) {
+    const values = assign.exec(input);
+    assignManu(db, editorId, values[1], values[2], promptFn);
+  } else if (input.match(editorAccept) !== null) {
+    const values = editorAccept.exec(input);
+    acceptManu(db, editorId, values[1], promptFn);
+  } else if (input.match(editorReject) !== null) {
+    const values = editorReject.exec(input);
+    rejectManu(db, editorId, values[1], promptFn);
+  } else if (input.match(typeset)) {
+    const values = typeset.exec(input);
+    typesetManu(db, editorId, values[1], values[2], promptFn);
+  } else if (input.match(schedule)) {
+    const values = schedule.exec(input);
+    scheduleManu(db, editorId, values[1], values[2], values[3], promptFn);
+  } else if (input.match(publish)) {
+    const values = publish.exec(input);
+    publishIssue(db, values[1], values[2], promptFn);
+  } else if (input.match(createIssue)) {
+    const values = createIssue.exec(input);
+    create(db, values[1], values[2], promptFn);
   } else if (input.match(status) !== null) {
-    getReviewerStatus(db, reviewerId, promptFn);
+    getStatus(db, editorId, promptFn);
   } else {
     console.log('invalid command');
     promptFn(db);
