@@ -6,7 +6,7 @@
 
 // import express from 'express';
 import prompt from 'prompt';
-import { MongoClient, ObjectID } from 'mongodb';
+import { MongoClient } from 'mongodb';
 import { login, registerReviewer, registerAuthor, registerEditor } from './regex';
 import handleAuthorInput from './author';
 import handleReviewerInput from './reviewer';
@@ -27,6 +27,9 @@ const username = 'Team13';
 const password = 'FjeyTVIlIUnnWtTY';
 const mongoURI = `mongodb://${username}:${password}@cluster0-shard-00-00-ppp7l.mongodb.net:27017,cluster0-shard-00-01-ppp7l.mongodb.net:27017,cluster0-shard-00-02-ppp7l.mongodb.net:27017/Team13DB?ssl=true&replicaSet=Cluster0-shard-0&authSource=admin`;
 
+const help = """
+  
+"""
 
 const promptFn = (db, resignHappened) => {
   if (resignHappened) {
