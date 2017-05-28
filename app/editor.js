@@ -107,13 +107,14 @@ function checkManuscript(db, idPerson, idManu, nextStatus, callback) {
   });
 }
 
-function checkIssue(db, year, publicationPeriodNumber) {
-  return db.collection('issues').findOne({ year, publicationPeriodNumber }).then((issue) => {
+function checkIssue(db, year, publicationPeriodNumber, callback) {
+  db.collection('issues').findOne({ year, publicationPeriodNumber }).then((issue) => {
     if (issue === null) {
       console.log('ERROR: Issue does not exist');
-      return false;
+      callback(false);
+      return;
     }
-    return db.collection('manuscripts').find({ issue: issue._id }).sort({ orderInIssue: 1 })
+    db.collection('manuscripts').find({ issue: issue._id }).sort({ orderInIssue: 1 })
     .toArray()
     .then((mans) => {
       const pages = mans.reduce((prev, cur) => {
@@ -132,15 +133,14 @@ function checkIssue(db, year, publicationPeriodNumber) {
         }
       }, { pageNumber: 0, orderInIssue: 0, totalPages: 0 });
       if (pages === null) {
-        return false;
+        callback(false);
       } else if (pages.totalPages === 0) {
-        console.log('ERROR: Cannot publish and empty issue');
-        return false;
+        console.log('ERROR: Cannot publish an empty issue');
+        callback(false);
       } else if (pages.totalPages > 100) {
         console.log('ERROR: Issue cannot exceed over 100 pages');
-        return false;
-      }
-      return true;
+        callback(false);
+      } else { callback(true); }
     });
   });
 }
@@ -235,15 +235,17 @@ function scheduleManu(db, idPerson, idManu, issueYear, issuePPN, promptFn) {
       }
       db.collection('manuscripts').find({ issue: issue._id }).sort({ orderInIssue: -1 }).toArray()
     .then((result) => {
-      if (result === null) {
+      if (result === null || result.length === null || result.length === 0) {
         db.collection('manuscripts').updateOne({ _id: parseInt(idManu, 10) }, { $set: {
           status: 'scheduled for publication',
           timestamp: new Date().toString(),
           issue: issue._id,
           orderInIssue: 1,
           pageNumber: 1,
-        } });
-        promptFn(db);
+        } }).then((done) => {
+          console.log('Manuscript scheduled!');
+          promptFn(db);
+        });
       } else {
         db.collection('manuscripts')
         .findOne({ _id: parseInt(idManu, 10) })
@@ -253,6 +255,7 @@ function scheduleManu(db, idPerson, idManu, issueYear, issuePPN, promptFn) {
           }, 0);
           if (totalPages + man.numPages > 100) {
             console.log('ERROR: Issue cannot contain more than 100 pages');
+            promptFn(db);
           } else {
             db.collection('manuscripts').updateOne({ _id: parseInt(idManu, 10) }, { $set: {
               status: 'scheduled for publication',
@@ -260,9 +263,11 @@ function scheduleManu(db, idPerson, idManu, issueYear, issuePPN, promptFn) {
               issue: issue._id,
               orderInIssue: result[0].orderInIssue + 1,
               pageNumber: totalPages + 1,
-            } });
+            } }).then((done) => {
+              console.log('Manuscript scheduled!');
+              promptFn(db);
+            });
           }
-          promptFn(db);
         });
       }
     });
@@ -295,17 +300,18 @@ function create(db, issueYear, issuePPN, promptFn) {
 }
 
 function publishIssue(db, issueYear, issuePPN, promptFn) {
-  if (!checkIssue(issueYear, issuePPN)) {
-    console.log('ERROR: Cannot not publish issue');
-    promptFn(db);
-    return;
-  }
-  db.collection('issues').findOne({ year: issueYear, publicationPeriodNumber: issuePPN }).then((issue) => {
-    db.collection('manuscripts').update({ issue: issue._id }, { $set: {
-      status: 'published',
-      timestamp: new Date().toString(),
-    } }).then((result) => {
+  checkIssue(db, issueYear, issuePPN, (check) => {
+    if (!check) {
       promptFn(db);
+      return;
+    }
+    db.collection('issues').findOne({ year: issueYear, publicationPeriodNumber: issuePPN }).then((issue) => {
+      db.collection('manuscripts').update({ issue: issue._id }, { $set: {
+        status: 'published',
+        timestamp: new Date().toString(),
+      } }).then((result) => {
+        promptFn(db);
+      });
     });
   });
 }
