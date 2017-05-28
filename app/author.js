@@ -1,14 +1,27 @@
 import prompt from 'prompt';
-import { ObjectID } from 'mongodb';
 import { submit, retract, status, registerAuthor } from './regex';
 import handleError from './error';
 
-const register = (db, fname, lname, email, address) {
-  db.collection('people').insert({fname, lname, email, address, type: 'author'})
-}
+const register = (db, fname, lname, email, address, promptFn) => {
+  db.collection('counters').findOneAndUpdate({ _id: 'people' }, { $inc: { seq: 1 } }, { returnOriginal: false }, (err, counter) => {
+    if (err) {
+      handleError(err);
+      promptFn(db);
+    } else {
+      db.collection('people').insertOne({ _id: counter.value.seq, fname, lname, email, address, type: 'author' }, (err, newAuthor) => {
+        if (err) {
+          handleError(err);
+        } else {
+          console.log(`You successfully registered as an author! Your system ID is ${counter.value.seq}.`);
+        }
+        promptFn(db);
+      });
+    }
+  });
+};
 
 const submitManuscript = (db, authorId, title, affiliation, RICode, authors, filename, promptFn) => {
-  db.collection('codes').find({ code: RICode }, (err, code) => {
+  db.collection('ricodes').find({ code: RICode }, (err, code) => {
     if (err) {
       handleError(err);
       promptFn(db);
@@ -22,18 +35,33 @@ const submitManuscript = (db, authorId, title, affiliation, RICode, authors, fil
           promptFn(db);
         } else {
           const randIdx = Math.floor(Math.random() * editors.length);
-          const newManuscript = {
-            title,
-            affiliation,
-            primaryAuthor: new ObjectID(authorId),
-            RICode,
-            secondaryAuthors: authors,
-            editor: editors[randIdx]._id,
-            status: 'submitted',
-            content: '10010101010',
-            timestamp: new Date(Date.now()),
-          };
-          db.collection('manuscripts').insert(newManuscript);
+          db.collection('counters').findOneAndUpdate({ _id: 'manuscripts' }, { $inc: { seq: 1 } }, { returnOriginal: false }, (err, counter) => {
+            if (err) {
+              handleError(err);
+              promptFn(db);
+            } else {
+              const newManuscript = {
+                _id: counter.value.seq,
+                title,
+                affiliation,
+                primaryAuthor: authorId,
+                RICode,
+                secondaryAuthors: authors,
+                editor: editors[randIdx]._id,
+                status: 'submitted',
+                content: '10010101010',
+                timestamp: new Date(Date.now()),
+              };
+              db.collection('manuscripts').insertOne(newManuscript, (err) => {
+                if (err) {
+                  handleError(err);
+                } else {
+                  console.log(`Successfully submitted manuscript with system id ${newManuscript._id}`);
+                }
+                promptFn(db);
+              });
+            }
+          });
         }
       });
     }
@@ -80,14 +108,15 @@ const getAuthorStatus = (db, authorId, promptFn) => {
 };
 
 const retractManuscript = (db, authorId, manuscriptId, promptFn) => {
-  db.collection('manuscripts').find({ _id: manuscriptId }, (err, manuscript) => {
+  db.collection('manuscripts').find({ _id: manuscriptId }).toArray((err, manuscripts) => {
     if (err) {
       handleError(err);
       promptFn(db);
-    } else if (manuscript === null) {
+    } else if (manuscripts === null) {
       console.log('No matching manuscript found');
       promptFn(db);
-    } else if (new ObjectID(authorId) !== manuscript.primaryAuthor) {
+    } else if (authorId !== manuscripts[0].primaryAuthor) {
+      console.log(`authorId: ${authorId}, primaryAuthor: ${manuscripts[0].primaryAuthor}`);
       console.log('You are not assigned to this manuscript.');
       promptFn(db);
     } else {
@@ -97,8 +126,8 @@ const retractManuscript = (db, authorId, manuscriptId, promptFn) => {
         } else if (result['Are you sure?'].toLowerCase() !== 'yes') {
           console.log('ok, not retracting manuscript');
         } else {
-          db.collection('reviews').remove({ manuscript: new ObjectID(manuscriptId) });
-          db.collection('manuscripts').remove({ _id: new ObjectID(manuscriptId) });
+          db.collection('reviews').remove({ manuscript: manuscriptId });
+          db.collection('manuscripts').remove({ _id: manuscriptId });
         }
         promptFn(db);
       });
@@ -107,22 +136,22 @@ const retractManuscript = (db, authorId, manuscriptId, promptFn) => {
 };
 
 const handleAuthorInput = (db, authorId, input, promptFn) => {
-  let values;
   if (input.match(submit) !== null) {
-    values = submit.exec(input);
+    const values = submit.exec(input);
     const title = values[1];
     const affiliation = values[2];
     const RICode = parseInt(values[3], 10);
-    const authors = values[4].trim().split(/s+/);
+    const authors = values[4].trim().split(' ');
     const filename = values[values.length - 1];
     submitManuscript(db, authorId, title, affiliation, RICode, authors, filename, promptFn);
   } else if (input.match(retract) !== null) {
-    values = retract.exec(input);
+    const values = retract.exec(input);
     retractManuscript(db, authorId, values[1], promptFn);
   } else if (input.match(status) !== null) {
     getAuthorStatus(db, authorId, promptFn);
   } else if (input.match(registerAuthor)) {
-
+    const values = registerAuthor.exec(input);
+    register(db, values[1], values[2], values[3], values[4], promptFn);
   } else {
     console.log('invalid command for author');
     promptFn(db);

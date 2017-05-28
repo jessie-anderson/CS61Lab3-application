@@ -1,15 +1,15 @@
 // register
 export const registerEditor = /register\s+editor\s+(\w+)\s+(\w+)/;
-export const registerAuthor = /register\s+author\s+(\w+)\s+(\w+)/;
-export const registerReviewer = /register\s+reviewer\s+(\w+)\s+(\w+)/;
+export const registerAuthor = /register\s+author\s+(\w+)\s+(\w+)\s+(\w+)\s+(\w+)/;
+export const registerReviewer = /register\s+reviewer\s+(\w+)\s+(\w+)(( \d+)+)/;
 
 // common
 export const login = /login\s+(\w+)/;
 export const status = /status\s*/;
 
 // author
-export const submit = /submit\s+(\w+)\s+(\w+)\s+(\d+)\s+(((\w+)\s+)+)\s+(\w+$)/;
-export const retract = /retract\s+(\w+)/;
+export const submit = /submit\s+(\w+)\s+(\w+)\s+(\d+)(( \w+)+)\s+(\w+$)/;
+export const retract = /retract\s+(\d+)/;
 
 // reviewer
 export const resign = /resign\s+(\w+)/;

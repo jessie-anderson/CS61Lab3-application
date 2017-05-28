@@ -1,6 +1,33 @@
-import { handleError } from './error';
-import { status, assign, editorAccept, editorReject, typeset, schedule, publish, createIssue } from './regex';
+import handleError from './error';
+import {
+  status,
+  assign,
+  editorAccept,
+  editorReject,
+  typeset,
+  schedule,
+  publish,
+  createIssue,
+  registerEditor,
+} from './regex';
 
+function register(db, fname, lname, promptFn) {
+  db.collection('counters').findOneAndUpdate({ _id: 'people' }, { $inc: { seq: 1 } }, { returnOriginal: false }, (err, counter) => {
+    if (err) {
+      handleError(err);
+      promptFn(db);
+    } else {
+      db.collection('people').insertOne({ _id: counter.value.seq, fname, lname, type: 'editor' }, (err) => {
+        if (err) {
+          handleError(err);
+        } else {
+          console.log(`You successfully registered as an editor! Your system ID is ${counter.value.seq}.`);
+        }
+        promptFn(db);
+      });
+    }
+  });
+}
 
 function getStatus(db, id, promptFn) {
   db.collection('manuscripts').find({ editor: parseInt(id, 10) }).toArray((err, manuscripts) => {
@@ -340,8 +367,11 @@ const handleEditorInput = (db, editorId, input, promptFn) => {
     create(db, values[1], values[2], promptFn);
   } else if (input.match(status) !== null) {
     getStatus(db, editorId, promptFn);
+  } else if (input.match(registerEditor)) {
+    const values = registerEditor.exec(input);
+    register(db, values[1], values[2], promptFn);
   } else {
-    console.log('invalid command');
+    console.log('invalid command for editor');
     promptFn(db);
   }
 };
