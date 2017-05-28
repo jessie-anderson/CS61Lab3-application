@@ -56,9 +56,10 @@ const promptFn = (db, resignHappened) => {
           } else {
             currentUserId = person._id;
             currentUserType = person.type;
-            console.log(`name: ${person.fname} ${person.lname}`);
-            console.log(`address: ${person.address}`);
-            console.log(currentUserType);
+            console.log(`Hello, ${person.type} ${person.fname} ${person.lname}!`);
+            if (person.type === 'author') {
+              console.log(`address: ${person.address}`);
+            }
             inputHandlers[currentUserType](db, currentUserId, 'status', promptFn);
           }
         });

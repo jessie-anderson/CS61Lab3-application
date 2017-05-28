@@ -1,7 +1,11 @@
 import prompt from 'prompt';
 import { ObjectID } from 'mongodb';
-import { submit, retract, status } from './regex';
+import { submit, retract, status, registerAuthor } from './regex';
 import handleError from './error';
+
+const register = (db, fname, lname, email, address) {
+  db.collection('people').insert({fname, lname, email, address, type: 'author'})
+}
 
 const submitManuscript = (db, authorId, title, affiliation, RICode, authors, filename, promptFn) => {
   db.collection('codes').find({ code: RICode }, (err, code) => {
@@ -117,6 +121,8 @@ const handleAuthorInput = (db, authorId, input, promptFn) => {
     retractManuscript(db, authorId, values[1], promptFn);
   } else if (input.match(status) !== null) {
     getAuthorStatus(db, authorId, promptFn);
+  } else if (input.match(registerAuthor)) {
+
   } else {
     console.log('invalid command for author');
     promptFn(db);
