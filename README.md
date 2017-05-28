@@ -3,14 +3,14 @@
 ## Setup
 The setup files for the basic database collections are included in the `./setup` folder.
 
-To execute run the following:\n
-`mongo <monogo options> MMSetup.js`\n
+To execute run the following:\\
+`mongo <monogo options> MMSetup.js`\\
 The database will be populated with the our Journal Database schema.
 
 ## Credentials
-The credentials of the database are:
-USERID:Team13
-PASSWORD:FjeyTVIlIUnnWtTY
+The credentials of the database are:\\
+USERID:Team13\\
+PASSWORD:FjeyTVIlIUnnWtTY\\
 DATABASE:Team13DB
 
 The `server.js` file stores the credentials as constants and can be updated to reflect a different database.
@@ -25,6 +25,9 @@ The following IDs use integer IDs:
 
 The following IDs use ObjectIDs:
 * reviews
+* issues
+
+(issues uses integer IDs in our database setup for consistency, but since it is always referenced by year and publication period number new issues use ObjectIDs)
 
 
 ## Usage

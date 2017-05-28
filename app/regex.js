@@ -17,10 +17,12 @@ export const reviewerReject = /reject\s+(\w+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/;
 export const reviewerAccept = /accept\s+(\w+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/;
 
 // editor
+export const statusMan = /status\s+(\w+)\s*/;
 export const assign = /assign\s+(\w+)\s+(\w+)\s*/;
 export const editorReject = /reject\s+(\w+)\s*/;
 export const editorAccept = /accept\s+(\w+)\s*/;
 export const typeset = /typeset\s+(\w+)\s+(\d+)\s*/;
 export const schedule = /schedule\s+(\w+)\s+(\d+)\s+([1234])\s*/;
+export const scheduleOrder = /schedule\s+with\s+(\w+)\s+(\d+)\s+([1234])\s+(\d+)\s+(\d+)\s*/;
 export const publish = /publish\s+(\d+)\s+([1234])\s*/;
 export const createIssue = /create\s+(\d+)\s+([1234])\s*/; // creates issue
