@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import handleError from './error';
 import {
   status,
@@ -63,6 +64,27 @@ function getStatus(db, id, promptFn) {
       publishedManuscripts.forEach((m) => {
         console.log(`${m._id}: published`);
       });
+      promptFn(db);
+    }
+  });
+}
+
+function getManStatus(db, idPerson, idManu, promptFn) {
+  db.collection('manuscripts').findOne({ _id: parseInt(idManu, 10), editor: parseInt(idPerson, 10) }).then((man) => {
+    if (man === null) {
+      console.log('ERROR: Manuscript not found for this editor');
+      promptFn(db);
+    } else {
+      console.log(`
+        title: ${man.title}
+        primaryAuthor: ${man.primaryAuthor}
+        secondaryAuthors: ${man.secondaryAuthors}
+        RICode:${man.RICode}
+        status: ${man.status}
+        timestamp: ${man.timestamp}
+        number of pages: ${man.numPages}
+        order in issue:${man.orderInIssue}
+        page number: ${man.pageNumber}`);
       promptFn(db);
     }
   });
@@ -302,15 +324,28 @@ function scheduleManu(db, idPerson, idManu, issueYear, issuePPN, promptFn) {
   });
 }
 
-/* function scheduleManuOrder(db, idPerson, idManu, issueYear, issuePPN, order, pageNumber, promptFn) {
-  if (!checkManuscript(db, idPerson, idManu, 'scheduled for publication')) { promptFn(db); return; }
-  db.collection('manuscripts').updateOne();
-  // check manuscript belogns to editor
-  // check correct next status
-  // check page maximum not exceeded
-  // add manuscript with given page order and page number
-  // check valid ordering and numbering
-}*/
+function scheduleManuOrder(db, idPerson, idManu, issueYear, issuePPN, orderInIssue, pageNumber, promptFn) {
+  checkManuscript(db, idPerson, idManu, 'scheduled for publication', (check) => {
+    if (!check) { promptFn(db); return; }
+    db.collection('issues').findOne({ year: issueYear, publicationPeriodNumber: issuePPN }).then((issue) => {
+      if (issue === null) {
+        console.log('ERROR: Issue does not exist');
+        promptFn(db);
+        return;
+      }
+      db.collection('manuscripts').updateOne({ _id: parseInt(idManu, 10) }, { $set: {
+        status: 'scheduled for publication',
+        timestamp: new Date().toString(),
+        issue: issue._id,
+        orderInIssue,
+        pageNumber,
+      } }).then((done) => {
+        console.log('Manuscript scheduled!');
+        promptFn(db);
+      });
+    });
+  });
+}
 
 function create(db, issueYear, issuePPN, promptFn) {
   db.collection('issues').findOne({ year: issueYear, publicationPeriodNumber: issuePPN }).then((issue) => {
@@ -347,6 +382,9 @@ const handleEditorInput = (db, editorId, input, promptFn) => {
   if (input.match(assign) !== null) {
     const values = assign.exec(input);
     assignManu(db, editorId, values[1], values[2], promptFn);
+  } else if (input.match(statusMan) !== null) {
+    const values = statusMan.exec(input);
+    getManStatus(db, editorId, values[1], promptFn);
   } else if (input.match(editorAccept) !== null) {
     const values = editorAccept.exec(input);
     acceptManu(db, editorId, values[1], promptFn);
@@ -359,6 +397,9 @@ const handleEditorInput = (db, editorId, input, promptFn) => {
   } else if (input.match(schedule)) {
     const values = schedule.exec(input);
     scheduleManu(db, editorId, values[1], values[2], values[3], promptFn);
+  } else if (input.match(scheduleOrder)) {
+    const values = scheduleOrder.exec(input);
+    scheduleManuOrder(db, editorId, values[1], values[2], values[3], values[4], values[5], promptFn);
   } else if (input.match(publish)) {
     const values = publish.exec(input);
     publishIssue(db, values[1], values[2], promptFn);
