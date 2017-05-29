@@ -187,14 +187,14 @@ function checkIssue(db, year, publicationPeriodNumber, callback) {
         if (prev.pageNumber > cur.pageNumber) {
           console.log('ERROR: Page numbers not in monotonically increasing order');
           return null;
-        } else if (cur.pageNumber !== prev.totalPages + 1) {
+        } else if (parseInt(cur.pageNumber, 10) !== prev.totalPages + 1) {
           console.log('ERROR: Issue page numbering cannot skip pages');
           return null;
-        } else if (cur.orderInIssue !== prev.orderInIssue + 1) {
+        } else if (parseInt(cur.orderInIssue, 10) !== prev.orderInIssue + 1) {
           console.log('ERROR: Manuscripts in issue cannot skip order');
           return null;
         } else {
-          return { pageNumber: cur.pageNumber, orderInIssue: cur.orderInIssue, totalPages: prev.totalPages + cur.numPages };
+          return { pageNumber: cur.pageNumber, orderInIssue: cur.orderInIssue, totalPages: parseInt(prev.totalPages, 10) + parseInt(cur.numPages, 10) };
         }
       }, { pageNumber: 0, orderInIssue: 0, totalPages: 0 });
       if (pages === null) {
@@ -321,9 +321,9 @@ function scheduleManu(db, idPerson, idManu, issueYear, issuePPN, promptFn) {
         .findOne({ _id: parseInt(idManu, 10) })
         .then((man) => {
           const totalPages = result.reduce((prev, cur) => {
-            return prev + cur.numPages;
+            return parseInt(prev, 10) + parseInt(cur.numPages, 10);
           }, 0);
-          if (totalPages + man.numPages > 100) {
+          if (totalPages + parseInt(man.numPages, 10) > 100) {
             console.log('ERROR: Issue cannot contain more than 100 pages');
             promptFn(db);
           } else {
