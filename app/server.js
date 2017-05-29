@@ -24,11 +24,6 @@ const username = 'Team13';
 const password = 'FjeyTVIlIUnnWtTY';
 const mongoURI = `mongodb://${username}:${password}@cluster0-shard-00-00-ppp7l.mongodb.net:27017,cluster0-shard-00-01-ppp7l.mongodb.net:27017,cluster0-shard-00-02-ppp7l.mongodb.net:27017/Team13DB?ssl=true&replicaSet=Cluster0-shard-0&authSource=admin`;
 
-/* const help = `
-
-  help\t\t\t help on available commands
-  login <idPerson>\t\t\t login`; */
-
 const promptFn = (db, resignHappened) => {
   if (resignHappened) {
     currentUserType = 'none';
@@ -94,33 +89,3 @@ MongoClient.connect(mongoURI, (err, db) => {
     promptFn(db);
   }
 });
-
-/* prompt.get(['username'], (err, result) => {
-  if (err) {
-    console.log('an error occurred processing input:');
-    console.log(err);
-    process.exit();
-  } else {
-    const username = result.username.trim();
-    prompt.get({ properties: { password: { hidden: true } } }, (err2, result2) => {
-      if (err2) {
-        console.log('an error occurred processing input:');
-        console.log(err);
-        process.exit();
-      } else {
-        const password = result2.password.trim();
-        MongoClient.connect(mongoURI, (err, db) => {
-          if (err) {
-            console.log('Error connecting to the database:');
-            console.log(err);
-            process.exit();
-          } else {
-            console.log('Connection to database successful!');
-            prompt.start();
-            promptFn(db);
-          }
-        });
-      }
-    });
-  }
-}); */
