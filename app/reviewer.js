@@ -1,6 +1,43 @@
-import { ObjectID } from 'mongodb';
-import { status, resign, reviewerReject, reviewerAccept } from './regex';
+import { status, resign, reviewerReject, reviewerAccept, registerReviewer } from './regex';
 import handleError from './error';
+
+const register = (db, fname, lname, interests, promptFn) => {
+  if (interests.length < 1 || interests.length > 3) {
+    console.log('Error: must specify at least 1 but no more than 3 interests');
+    promptFn(db);
+  } else {
+    db.collection('ricodes').find({ code: { $in: interests } }).toArray((err, interestsInDB) => {
+      if (err) {
+        handleError(err);
+        promptFn(db);
+      } else if (interestsInDB.length < interests.length) {
+        const badCodes = interests.filter((i) => {
+          return interestsInDB.indexOf(i) < 0;
+        });
+        badCodes.forEach((c) => {
+          console.log(`Error: ${c} is not a valid interest code`);
+        });
+        promptFn(db);
+      } else {
+        db.collection('counters').findOneAndUpdate({ _id: 'people' }, { $inc: { seq: 1 } }, { returnOriginal: false }, (err, counter) => {
+          if (err) {
+            handleError(err);
+            promptFn(db);
+          } else {
+            db.collection('people').insertOne({ _id: counter.value.seq, fname, lname, interests, type: 'reviewer' }, (err, newReviewer) => {
+              if (err) {
+                handleError(err);
+              } else {
+                console.log(`You successfully registered as a reviewer! Your system ID is ${counter.value.seq}.`);
+              }
+              promptFn(db);
+            });
+          }
+        });
+      }
+    });
+  }
+};
 
 const validateScores = (appropriateness, clarity, methodology, contribution) => {
   let a = true;
@@ -33,8 +70,8 @@ const reviewManuscript = (db, reviewerId, manuscriptId, appropriateness, clarity
     promptFn(db);
   } else {
     const reviewQuery = {
-      reviewer: new ObjectID(reviewerId),
-      manuscript: new ObjectID(manuscriptId),
+      reviewer: reviewerId,
+      manuscript: manuscriptId,
     };
     db.collection('reviews').findOne(reviewQuery, (err, manuscript) => {
       if (err) {
@@ -69,14 +106,14 @@ const reviewManuscript = (db, reviewerId, manuscriptId, appropriateness, clarity
 };
 
 const reviewerResign = (db, reviewerId, promptFn) => {
-  db.collection('reviews').remove({ reviewer: new ObjectID(reviewerId) });
-  db.collection('people').remove({ _id: new ObjectID(reviewerId) });
+  db.collection('reviews').remove({ reviewer: reviewerId });
+  db.collection('people').remove({ _id: reviewerId });
   console.log('Thank you for your service!');
   promptFn(db, true);
 };
 
 const getReviewerStatus = (db, reviewerId, promptFn) => {
-  db.collection('reviews').find({ reviewer: new ObjectID(reviewerId) }).toArray((err, reviews) => {
+  db.collection('reviews').find({ reviewer: reviewerId }).toArray((err, reviews) => {
     if (err) {
       handleError(err);
       promptFn(db);
@@ -140,8 +177,15 @@ const handleReviewerInput = (db, reviewerId, input, promptFn) => {
       parseInt(values[3], 10), parseInt(values[4], 10), parseInt(values[5], 10), 0, promptFn);
   } else if (input.match(status) !== null) {
     getReviewerStatus(db, reviewerId, promptFn);
+  } else if (input.match(registerReviewer)) {
+    const values = registerReviewer.exec(input);
+    console.log(`interests: ${values[3].split(' ').slice(1)}`);
+    const interests = values[3].split(' ').slice(1).map((v) => {
+      return parseInt(v.trim(), 10);
+    });
+    register(db, values[1], values[2], interests, promptFn);
   } else {
-    console.log('invalid command');
+    console.log('invalid command for reviewer');
     promptFn(db);
   }
 };

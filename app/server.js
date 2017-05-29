@@ -4,7 +4,6 @@
  * Github for boilerplate source: https://github.com/dartmouth-cs52/express-babel-starter
  */
 
-// import express from 'express';
 import prompt from 'prompt';
 import { MongoClient } from 'mongodb';
 import { login, registerReviewer, registerAuthor, registerEditor } from './regex';
@@ -13,8 +12,6 @@ import handleReviewerInput from './reviewer';
 import handleEditorInput from './editor';
 import handleError from './error';
 
-// initialize
-// const app = express();
 const inputHandlers = {
   author: handleAuthorInput,
   reviewer: handleReviewerInput,
@@ -28,6 +25,7 @@ const password = 'FjeyTVIlIUnnWtTY';
 const mongoURI = `mongodb://${username}:${password}@cluster0-shard-00-00-ppp7l.mongodb.net:27017,cluster0-shard-00-01-ppp7l.mongodb.net:27017,cluster0-shard-00-02-ppp7l.mongodb.net:27017/Team13DB?ssl=true&replicaSet=Cluster0-shard-0&authSource=admin`;
 
 /* const help = `
+
   help\t\t\t help on available commands
   login <idPerson>\t\t\t login`; */
 
@@ -41,12 +39,6 @@ const promptFn = (db, resignHappened) => {
       console.log('Bye!');
       db.close();
       process.exit();
-    } else if (result.command.match(registerAuthor)) {
-      console.log('temp');
-    } else if (result.command.match(registerReviewer)) {
-      console.log('temp');
-    } else if (result.command.match(registerEditor)) {
-      console.log('temp');
     } else if (currentUserType === 'none' || currentUserId === null) {
       if (result.command.match(login) !== null) {
         db.collection('people').findOne({ _id: parseInt(`${login.exec(result.command)[1]}`, 10) }, (err, person) => {
@@ -60,12 +52,19 @@ const promptFn = (db, resignHappened) => {
           } else {
             currentUserId = person._id;
             currentUserType = person.type;
-            console.log(`name: ${person.fname} ${person.lname}`);
-            console.log(`address: ${person.address}`);
-            console.log(currentUserType);
+            console.log(`Hello, ${person.type} ${person.fname} ${person.lname}!`);
+            if (person.type === 'author') {
+              console.log(`address: ${person.address}`);
+            }
             inputHandlers[currentUserType](db, currentUserId, 'status', promptFn);
           }
         });
+      } else if (result.command.match(registerEditor)) {
+        inputHandlers.editor(db, null, result.command, promptFn);
+      } else if (result.command.match(registerReviewer)) {
+        inputHandlers.reviewer(db, null, result.command, promptFn);
+      } else if (result.command.match(registerAuthor)) {
+        inputHandlers.author(db, null, result.command, promptFn);
       } else {
         console.log('invalid command');
         promptFn(db);
@@ -81,16 +80,6 @@ const promptFn = (db, resignHappened) => {
   });
 };
 
-// app.set('view engine', 'ejs');
-// app.use(express.static('static'));
-// enables static assets from folder static
-
-// START THE SERVER
-// =============================================================================
-// const port = process.env.PORT || 9090;
-// app.listen(port);
-
-// console.log(`listening on: ${port}`);
 prompt.message = ('Journal DB');
 prompt.delimiter = ':';
 prompt.start();

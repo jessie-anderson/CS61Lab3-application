@@ -1,6 +1,35 @@
-import { handleError } from './error';
-import { status, statusMan, assign, editorAccept, editorReject, typeset, schedule, scheduleOrder, publish, createIssue } from './regex';
+import handleError from './error';
+import {
+  status,
+  assign,
+  editorAccept,
+  editorReject,
+  typeset,
+  schedule,
+  publish,
+  createIssue,
+  registerEditor,
+  statusMan,
+  scheduleOrder,
+} from './regex';
 
+function register(db, fname, lname, promptFn) {
+  db.collection('counters').findOneAndUpdate({ _id: 'people' }, { $inc: { seq: 1 } }, { returnOriginal: false }, (err, counter) => {
+    if (err) {
+      handleError(err);
+      promptFn(db);
+    } else {
+      db.collection('people').insertOne({ _id: counter.value.seq, fname, lname, type: 'editor' }, (err) => {
+        if (err) {
+          handleError(err);
+        } else {
+          console.log(`You successfully registered as an editor! Your system ID is ${counter.value.seq}.`);
+        }
+        promptFn(db);
+      });
+    }
+  });
+}
 
 function getStatus(db, id, promptFn) {
   db.collection('manuscripts').find({ editor: parseInt(id, 10) }).sort({ _id: 1 }).toArray((err, manuscripts) => {
@@ -110,7 +139,7 @@ function checkManuscript(db, idPerson, idManu, nextStatus, callback) {
         callback(false);
         break;
       case 'scheduled for publication':
-        if (result.status === 'typesetting') { callback(true); return; }
+        if (result.status === 'typesetting' || result.status === 'scheduled for publication') { callback(true); return; }
         console.log('ERROR: Manuscript cannot be scheduled for publication until it has been typeset');
         callback(false);
         break;
@@ -132,6 +161,12 @@ function checkIssue(db, year, publicationPeriodNumber, callback) {
   db.collection('issues').findOne({ year, publicationPeriodNumber }).then((issue) => {
     if (issue === null) {
       console.log('ERROR: Issue does not exist');
+      callback(false);
+      return;
+    } else if (issue.printDate !== undefined) {
+      console.log(issue);
+      console.log(issue.printDate);
+      console.log('ERROR: Issue already published');
       callback(false);
       return;
     }
@@ -208,6 +243,7 @@ function rejectManu(db, idPerson, idManu, promptFn) {
       status: 'rejected',
       timestamp: new Date().toString(),
     } }).then((result) => {
+      console.log('Manuscript rejected!');
       promptFn(db);
     });
   });
@@ -251,6 +287,10 @@ function scheduleManu(db, idPerson, idManu, issueYear, issuePPN, promptFn) {
     db.collection('issues').findOne({ year: issueYear, publicationPeriodNumber: issuePPN }).then((issue) => {
       if (issue === null) {
         console.log('ERROR: Issue does not exist');
+        promptFn(db);
+        return;
+      } else if (issue.printDate !== undefined) {
+        console.log('ERROR: Issue already published');
         promptFn(db);
         return;
       }
@@ -344,7 +384,11 @@ function publishIssue(db, issueYear, issuePPN, promptFn) {
         status: 'published',
         timestamp: new Date().toString(),
       } }).then((result) => {
-        promptFn(db);
+        db.collection('issues').update({ year: issueYear, publicationPeriodNumber: issuePPN }, { $set: { printDate: new Date().toString() } })
+        .then((issueResult) => {
+          console.log('Issue published!');
+          promptFn(db);
+        });
       });
     });
   });
@@ -380,8 +424,11 @@ const handleEditorInput = (db, editorId, input, promptFn) => {
     create(db, values[1], values[2], promptFn);
   } else if (input.match(status) !== null) {
     getStatus(db, editorId, promptFn);
+  } else if (input.match(registerEditor)) {
+    const values = registerEditor.exec(input);
+    register(db, values[1], values[2], promptFn);
   } else {
-    console.log('invalid command');
+    console.log('invalid command for editor');
     promptFn(db);
   }
 };
