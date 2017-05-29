@@ -135,7 +135,7 @@ function checkManuscript(db, idPerson, idManu, nextStatus, callback) {
         break;
       case 'typesetting':
         if (result.status === 'accepted') { callback(true); return; }
-        console.log('ERROR: Manuscript cannot be typeset until it is accepted or rejected');
+        console.log('ERROR: Manuscript cannot be typeset until it is accepted');
         callback(false);
         break;
       case 'scheduled for publication':
