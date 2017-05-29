@@ -139,7 +139,16 @@ function checkManuscript(db, idPerson, idManu, nextStatus, callback) {
         callback(false);
         break;
       case 'scheduled for publication':
-        if (result.status === 'typesetting' || result.status === 'scheduled for publication') { callback(true); return; }
+        if (result.status === 'typesetting' || result.status === 'scheduled for publication') {
+          if (result.numPages > 100) {
+            console.log('ERROR: Issue cannot exceed 100 pages');
+            callback(false);
+            return;
+          } else {
+            callback(true);
+            return;
+          }
+        }
         console.log('ERROR: Manuscript cannot be scheduled for publication until it has been typeset');
         callback(false);
         break;
