@@ -172,11 +172,11 @@ const handleReviewerInput = (db, reviewerId, input, promptFn) => {
     }
   } else if (input.match(reviewerAccept) !== null) {
     const values = reviewerAccept.exec(input);
-    reviewManuscript(db, reviewerId, values[1], parseInt(values[2], 10),
+    reviewManuscript(db, reviewerId, parseInt(values[1], 10), parseInt(values[2], 10),
       parseInt(values[3], 10), parseInt(values[4], 10), parseInt(values[5], 10), 1, promptFn);
   } else if (input.match(reviewerReject) !== null) {
     const values = reviewerReject.exec(input);
-    reviewManuscript(db, reviewerId, values[1], parseInt(values[2], 10),
+    reviewManuscript(db, reviewerId, parseInt(values[1], 10), parseInt(values[2], 10),
       parseInt(values[3], 10), parseInt(values[4], 10), parseInt(values[5], 10), 0, promptFn);
   } else if (input.match(status) !== null) {
     getReviewerStatus(db, reviewerId, promptFn);
