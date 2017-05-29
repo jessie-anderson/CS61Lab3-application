@@ -72,7 +72,7 @@ const reviewManuscript = (db, reviewerId, manuscriptId, appropriateness, clarity
   } else {
     const reviewQuery = {
       reviewer: reviewerId,
-      manuscript: manuscriptid,
+      manuscript: manuscriptId,
     };
     db.collection('reviews').findOne(reviewQuery, (err, manuscript) => {
       if (err) {

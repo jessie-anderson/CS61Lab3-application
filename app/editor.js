@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import handleError from './error';
 import {
   status,
@@ -10,6 +9,8 @@ import {
   publish,
   createIssue,
   registerEditor,
+  statusMan,
+  scheduleOrder,
 } from './regex';
 
 function register(db, fname, lname, promptFn) {

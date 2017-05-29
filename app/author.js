@@ -108,15 +108,15 @@ const getAuthorStatus = (db, authorId, promptFn) => {
 };
 
 const retractManuscript = (db, authorId, manuscriptId, promptFn) => {
-  db.collection('manuscripts').find({ _id: manuscriptId }).toArray((err, manuscripts) => {
+  db.collection('manuscripts').findOne({ _id: manuscriptId }, { fields: { primaryAuthor: 1 } }, (err, manuscript) => {
     if (err) {
       handleError(err);
       promptFn(db);
-    } else if (manuscripts === null) {
+    } else if (manuscript === null) {
       console.log('No matching manuscript found');
       promptFn(db);
-    } else if (authorId !== manuscripts[0].primaryAuthor) {
-      console.log(`authorId: ${authorId}, primaryAuthor: ${manuscripts[0].primaryAuthor}`);
+    } else if (authorId !== manuscript.primaryAuthor) {
+      console.log(`authorId: ${authorId}, primaryAuthor: ${manuscript.primaryAuthor}`);
       console.log('You are not assigned to this manuscript.');
       promptFn(db);
     } else {
@@ -146,7 +146,7 @@ const handleAuthorInput = (db, authorId, input, promptFn) => {
     submitManuscript(db, authorId, title, affiliation, RICode, authors, filename, promptFn);
   } else if (input.match(retract) !== null) {
     const values = retract.exec(input);
-    retractManuscript(db, authorId, values[1], promptFn);
+    retractManuscript(db, authorId, parseInt(values[1], 10), promptFn);
   } else if (input.match(status) !== null) {
     getAuthorStatus(db, authorId, promptFn);
   } else if (input.match(registerAuthor)) {
