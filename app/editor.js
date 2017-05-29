@@ -111,7 +111,7 @@ function checkManuscript(db, idPerson, idManu, nextStatus, callback) {
         break;
       case 'accepted':
         if (result.status === 'under review') {
-          db.collection('reviews').find({ manuscript: idManu, dateCompleted: { $ne: null } }).count().then((count) => {
+          db.collection('reviews').find({ manuscript: parseInt(idManu, 10), dateCompleted: { $ne: null } }).count().then((count) => {
             if (count >= 3) { callback(true); return; }
             console.log('ERROR: Need at least 3 completed reviews to set manuscript to accepted');
             callback(false);
@@ -123,7 +123,7 @@ function checkManuscript(db, idPerson, idManu, nextStatus, callback) {
         break;
       case 'rejected':
         if (result.status === 'under review') {
-          db.collection('reviews').find({ manuscript: idManu, dateCompleted: { $ne: null } }).count().then((count) => {
+          db.collection('reviews').find({ manuscript: parseInt(idManu, 10), dateCompleted: { $ne: null } }).count().then((count) => {
             if (count >= 3) { callback(true); return; }
             console.log('ERROR: Need at least 3 completed reviews to set manuscript to rejected');
             callback(false);
