@@ -51,48 +51,36 @@ After starting the application/connecting to the database the user must first ei
 The editor interface supports the following queries
 
 Commands:
-* `status`
-
+* `status`  
   lists idManuscript status ordered by status, then idManuscript in the order:
   'submitted' --> 'under review' --> 'rejected' --> 'accepted' --> 'typesetting' --> 'scheduled for publication' --> 'published'
-* `status <idManuscript>`
-
+* `status <idManuscript>`  
   lists details of a particular manuscript, i.e.
   idManuscript, title, RICode Interest, status, timestamp, affiliation (of primary author at time of submission), number of pages, Issue year and publication period number, order in issue, pageNumber
-* `assign <idManuscript> <idPerson of Reviewer>`
-
+* `assign <idManuscript> <idPerson of Reviewer>`  
   creates and assigns a review of a given manuscript to a particular Reviewer. The two must have the same RICode for a review to be assigned. For our data manuscript 2 and reviewer 5 have matching RICodes.
-* `accept <idManuscript>`
-
+* `accept <idManuscript>`  
   sets the manuscript to the assigned status
-* `reject <idManuscript>`
-
+* `reject <idManuscript>`  
   sets the manuscript to the rejected status
-* `typeset <idManuscript> <pp>`
-
+* `typeset <idManuscript> <pp>`  
   sets the manuscript to the 'typesetting' status with the number of pages `pp`
-* `schedule <idManuscript> <Issue year> <Issue publication period number>`
-
+* `schedule <idManuscript> <Issue year> <Issue publication period number>`  
   sets the manuscript to the 'scheduled for publication' status. The order in issue and pageNumber become the default next values.
-* `schedule with <idManuscript> <Issue_year> <Issue publication period number> <order in issue> <page number>`
-
-  sets the manuscript to the 'scheduled for publication' status. The order in issue and page number become the values specified by the command.
-
+* `schedule with <idManuscript> <Issue_year> <Issue publication period number> <order in issue> <page number>`  
+  sets the manuscript to the 'scheduled for publication' status. The order in issue and page number become the values specified by the command.  
   Note: the user can reschedule the manuscript and reset the order and pageNumber with this command.
-* `publish <Issue year> <Issue publication period number>`
-
+* `publish <Issue year> <Issue publication period number>`  
   publishes a given issue and sets the status of manuscripts in the issues to 'published'. A published issue cannot be empty and must have a continuous issue ordering starting from 1.
-* `create <Issue year> <Issue publication period number>`
-
+* `create <Issue year> <Issue publication period number>`  
   creates an unpublished issue with a given issue year and publication period number
-* `logout`
-
+* `logout`  
   logs out of the Editor interface and back into the login screen
 
 ## Author
 
 Commands:
-* `submit <title> <Affiliation> <RICode> <filename> <author2> <author3> <author4>` submits a new manuscript. Note we changed the order of the input args so that filename was before the authors; made regular expression matching easier. In addition, `<author2>`, `<author3>`, and `<author4>` must match the IDs of authors who are already in the system - these are not strings/names! There may be any number of secondary authors provided, or none at all.
+* `submit <title> <Affiliation> <RICode> <filename> <author2> <author3> <author4>` submits a new manuscript. Note we changed the order of the input args so that filename was before the authors; made regular expression matching easier. There may be any number of secondary authors provided, or none at all.
 * `status`
 * `retract <manId>` retracts manuscript with given id from system
 

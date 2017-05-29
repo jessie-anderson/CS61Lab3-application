@@ -111,7 +111,7 @@ function checkManuscript(db, idPerson, idManu, nextStatus, callback) {
         break;
       case 'accepted':
         if (result.status === 'under review') {
-          db.collection('reviews').find({ manuscript: idManu, dateCompleted: { $ne: null } }).count().then((count) => {
+          db.collection('reviews').find({ manuscript: parseInt(idManu, 10), dateCompleted: { $ne: null } }).count().then((count) => {
             if (count >= 3) { callback(true); return; }
             console.log('ERROR: Need at least 3 completed reviews to set manuscript to accepted');
             callback(false);
@@ -123,7 +123,7 @@ function checkManuscript(db, idPerson, idManu, nextStatus, callback) {
         break;
       case 'rejected':
         if (result.status === 'under review') {
-          db.collection('reviews').find({ manuscript: idManu, dateCompleted: { $ne: null } }).count().then((count) => {
+          db.collection('reviews').find({ manuscript: parseInt(idManu, 10), dateCompleted: { $ne: null } }).count().then((count) => {
             if (count >= 3) { callback(true); return; }
             console.log('ERROR: Need at least 3 completed reviews to set manuscript to rejected');
             callback(false);
@@ -134,12 +134,21 @@ function checkManuscript(db, idPerson, idManu, nextStatus, callback) {
         callback(false);
         break;
       case 'typesetting':
-        if (result.status === 'accepted' || result.status === 'rejected') { callback(true); return; }
+        if (result.status === 'accepted') { callback(true); return; }
         console.log('ERROR: Manuscript cannot be typeset until it is accepted or rejected');
         callback(false);
         break;
       case 'scheduled for publication':
-        if (result.status === 'typesetting' || result.status === 'scheduled for publication') { callback(true); return; }
+        if (result.status === 'typesetting' || result.status === 'scheduled for publication') {
+          if (result.numPages > 100) {
+            console.log('ERROR: Issue cannot exceed 100 pages');
+            callback(false);
+            return;
+          } else {
+            callback(true);
+            return;
+          }
+        }
         console.log('ERROR: Manuscript cannot be scheduled for publication until it has been typeset');
         callback(false);
         break;
