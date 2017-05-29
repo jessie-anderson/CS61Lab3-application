@@ -6,11 +6,14 @@ const register = (db, fname, lname, interests, promptFn) => {
     console.log('Error: must specify at least 1 but no more than 3 interests');
     promptFn(db);
   } else {
-    db.collection('ricodes').find({ code: { $in: interests } }).toArray((err, interestsInDB) => {
+    db.collection('ricodes').find({ code: { $in: interests } }, { fields: { code: 1 } }).toArray((err, interestsInDB) => {
       if (err) {
         handleError(err);
         promptFn(db);
       } else if (interestsInDB.length < interests.length) {
+        interestsInDB = interestsInDB.map((i) => {
+          return i.code;
+        });
         const badCodes = interests.filter((i) => {
           return interestsInDB.indexOf(i) < 0;
         });
@@ -161,7 +164,7 @@ const getReviewerStatus = (db, reviewerId, promptFn) => {
 
 const handleReviewerInput = (db, reviewerId, input, promptFn) => {
   if (input.match(resign) !== null) {
-    if (resign.exec(input)[1] !== reviewerId) {
+    if (parseInt(resign.exec(input)[1], 10) !== reviewerId) {
       console.log(`${input.match(resign)[1]} is not your ID. Please enter your ID to resign`);
       promptFn(db);
     } else {
@@ -179,7 +182,6 @@ const handleReviewerInput = (db, reviewerId, input, promptFn) => {
     getReviewerStatus(db, reviewerId, promptFn);
   } else if (input.match(registerReviewer)) {
     const values = registerReviewer.exec(input);
-    console.log(`interests: ${values[3].split(' ').slice(1)}`);
     const interests = values[3].split(' ').slice(1).map((v) => {
       return parseInt(v.trim(), 10);
     });
