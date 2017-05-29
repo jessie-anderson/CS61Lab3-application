@@ -92,7 +92,7 @@ Commands:
 ## Author
 
 Commands:
-* `submit <title> <Affiliation> <RICode> <filename> <author2> <author3> <author4>` submits a new manuscript. Note we changed the order of the input args so that filename was before the authors; made regular expression matching easier. In addition, `<author2>`, `<author3>`, and `<author4>` must match the IDs of authors who are already in the system - these are not strings/names! There may be any number of secondary authors provided, or none at all.
+* `submit <title> <Affiliation> <RICode> <filename> <author2> <author3> <author4>` submits a new manuscript. Note we changed the order of the input args so that filename was before the authors; made regular expression matching easier. There may be any number of secondary authors provided, or none at all.
 * `status`
 * `retract <manId>` retracts manuscript with given id from system
 
