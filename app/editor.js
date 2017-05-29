@@ -32,7 +32,7 @@ function register(db, fname, lname, promptFn) {
 }
 
 function getStatus(db, id, promptFn) {
-  db.collection('manuscripts').find({ editor: parseInt(id, 10) }).toArray((err, manuscripts) => {
+  db.collection('manuscripts').find({ editor: parseInt(id, 10) }).sort({ _id: 1 }).toArray((err, manuscripts) => {
     if (err) {
       handleError(err);
       promptFn(db);
@@ -139,7 +139,7 @@ function checkManuscript(db, idPerson, idManu, nextStatus, callback) {
         callback(false);
         break;
       case 'scheduled for publication':
-        if (result.status === 'typesetting') { callback(true); return; }
+        if (result.status === 'typesetting' || result.status === 'scheduled for publication') { callback(true); return; }
         console.log('ERROR: Manuscript cannot be scheduled for publication until it has been typeset');
         callback(false);
         break;
@@ -161,6 +161,12 @@ function checkIssue(db, year, publicationPeriodNumber, callback) {
   db.collection('issues').findOne({ year, publicationPeriodNumber }).then((issue) => {
     if (issue === null) {
       console.log('ERROR: Issue does not exist');
+      callback(false);
+      return;
+    } else if (issue.printDate !== undefined) {
+      console.log(issue);
+      console.log(issue.printDate);
+      console.log('ERROR: Issue already published');
       callback(false);
       return;
     }
@@ -237,6 +243,7 @@ function rejectManu(db, idPerson, idManu, promptFn) {
       status: 'rejected',
       timestamp: new Date().toString(),
     } }).then((result) => {
+      console.log('Manuscript rejected!');
       promptFn(db);
     });
   });
@@ -280,6 +287,10 @@ function scheduleManu(db, idPerson, idManu, issueYear, issuePPN, promptFn) {
     db.collection('issues').findOne({ year: issueYear, publicationPeriodNumber: issuePPN }).then((issue) => {
       if (issue === null) {
         console.log('ERROR: Issue does not exist');
+        promptFn(db);
+        return;
+      } else if (issue.printDate !== undefined) {
+        console.log('ERROR: Issue already published');
         promptFn(db);
         return;
       }
@@ -373,7 +384,11 @@ function publishIssue(db, issueYear, issuePPN, promptFn) {
         status: 'published',
         timestamp: new Date().toString(),
       } }).then((result) => {
-        promptFn(db);
+        db.collection('issues').update({ year: issueYear, publicationPeriodNumber: issuePPN }, { $set: { printDate: new Date().toString() } })
+        .then((issueResult) => {
+          console.log('Issue published!');
+          promptFn(db);
+        });
       });
     });
   });

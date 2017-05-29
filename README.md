@@ -3,14 +3,14 @@
 ## Setup
 The setup files for the basic database collections are included in the `./setup` folder.
 
-To execute run the following:\\
-`mongo <monogo options> MMSetup.js`\\
+To execute run the following:  
+`mongo <monogo options> MMSetup.js`  
 The database will be populated with the our Journal Database schema.
 
 ## Credentials
-The credentials of the database are:\\
-USERID:Team13\\
-PASSWORD:FjeyTVIlIUnnWtTY\\
+The credentials of the database are:  
+USERID:Team13  
+PASSWORD:FjeyTVIlIUnnWtTY  
 DATABASE:Team13DB
 
 The `server.js` file stores the credentials as constants and can be updated to reflect a different database.
@@ -29,6 +29,13 @@ The following IDs use ObjectIDs:
 
 (issues uses integer IDs in our database setup for consistency, but since it is always referenced by year and publication period number new issues use ObjectIDs)
 
+## Starting the application
+
+To run the command line interface, first make sure Node.js and npm are installed on your computer. Run the command:  
+`npm install`  
+to install dependencies. Then run:  
+`npm start`  
+and the shell will start.
 
 ## Usage
 After starting the application/connecting to the database the user must first either login or register:
@@ -63,7 +70,7 @@ Commands:
   sets the manuscript to the rejected status
 * `typeset <idManuscript> <pp>`
 
-  sets the manuscript to the 'typesetting' status with the number of pages <pp>
+  sets the manuscript to the 'typesetting' status with the number of pages `pp`
 * `schedule <idManuscript> <Issue year> <Issue publication period number>`
 
   sets the manuscript to the 'scheduled for publication' status. The order in issue and pageNumber become the default next values.
@@ -81,3 +88,17 @@ Commands:
 * `logout`
 
   logs out of the Editor interface and back into the login screen
+
+## Author
+
+Commands:
+* `submit <title> <Affiliation> <RICode> <filename> <author2> <author3> <author4>` submits a new manuscript. Note we changed the order of the input args so that filename was before the authors; made regular expression matching easier. In addition, `<author2>`, `<author3>`, and `<author4>` must match the IDs of authors who are already in the system - these are not strings/names! There may be any number of secondary authors provided, or none at all.
+* `status`
+* `retract <manId>` retracts manuscript with given id from system
+
+## Reviewer
+* `resign <id>` removes reviewer from system
+* `accept <manuscriptId> <appropriateness> <clarity> <methodology> <contribution>`
+* `reject <manuscriptId> <appropriateness> <clarity> <methodology> <contribution>`
+
+Note: for `accept` and `reject`, the fields   `<appropriateness> <clarity> <methodology> <contribution>` must be integers between 1 and 10.
