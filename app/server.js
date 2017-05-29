@@ -27,9 +27,9 @@ const username = 'Team13';
 const password = 'FjeyTVIlIUnnWtTY';
 const mongoURI = `mongodb://${username}:${password}@cluster0-shard-00-00-ppp7l.mongodb.net:27017,cluster0-shard-00-01-ppp7l.mongodb.net:27017,cluster0-shard-00-02-ppp7l.mongodb.net:27017/Team13DB?ssl=true&replicaSet=Cluster0-shard-0&authSource=admin`;
 
-const help = `
+/* const help = `
   help\t\t\t help on available commands
-  login <idPerson>\t\t\t login`;
+  login <idPerson>\t\t\t login`; */
 
 const promptFn = (db, resignHappened) => {
   if (resignHappened) {
@@ -39,6 +39,7 @@ const promptFn = (db, resignHappened) => {
   prompt.get({ name: 'command', description: 'COMMAND>' }, (err, result) => {
     if (result.command === 'exit') {
       console.log('Bye!');
+      db.close();
       process.exit();
     } else if (result.command.match(registerAuthor)) {
       console.log('temp');

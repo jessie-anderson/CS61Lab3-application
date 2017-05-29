@@ -3,7 +3,7 @@ import { status, statusMan, assign, editorAccept, editorReject, typeset, schedul
 
 
 function getStatus(db, id, promptFn) {
-  db.collection('manuscripts').find({ editor: parseInt(id, 10) }).toArray((err, manuscripts) => {
+  db.collection('manuscripts').find({ editor: parseInt(id, 10) }).sort({ _id: 1 }).toArray((err, manuscripts) => {
     if (err) {
       handleError(err);
       promptFn(db);
@@ -47,7 +47,7 @@ function getManStatus(db, idPerson, idManu, promptFn) {
       console.log('ERROR: Manuscript not found for this editor');
       promptFn(db);
     } else {
-      console.log(` 
+      console.log(`
         title: ${man.title}
         primaryAuthor: ${man.primaryAuthor}
         secondaryAuthors: ${man.secondaryAuthors}

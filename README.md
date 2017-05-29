@@ -3,14 +3,14 @@
 ## Setup
 The setup files for the basic database collections are included in the `./setup` folder.
 
-To execute run the following:\\
-`mongo <monogo options> MMSetup.js`\\
+To execute run the following:\s\s
+`mongo <monogo options> MMSetup.js`\s\s
 The database will be populated with the our Journal Database schema.
 
 ## Credentials
-The credentials of the database are:\\
-USERID:Team13\\
-PASSWORD:FjeyTVIlIUnnWtTY\\
+The credentials of the database are:\s\s
+USERID:Team13\s\s
+PASSWORD:FjeyTVIlIUnnWtTY\s\s
 DATABASE:Team13DB
 
 The `server.js` file stores the credentials as constants and can be updated to reflect a different database.
