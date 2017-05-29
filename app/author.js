@@ -21,7 +21,7 @@ const register = (db, fname, lname, email, address, promptFn) => {
 };
 
 const submitManuscript = (db, authorId, title, affiliation, RICode, authors, filename, promptFn) => {
-  db.collection('ricodes').find({ code: RICode }, (err, code) => {
+  db.collection('ricodes').findOne({ code: RICode }, (err, code) => {
     if (err) {
       handleError(err);
       promptFn(db);
